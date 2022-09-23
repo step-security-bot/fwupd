@@ -1,0 +1,9 @@
+# TODO: revisit InstallDuration
+
+#[USB\VID_046D&PID_085E]
+#[V4L2\VID_046D&PID_085E]
+#[VIDEO4LINUX\VID_046D&PID_085E]
+[VIDEO4LINUX\VEN_046D&DEV_08E2]
+Plugin = logitech_whiteboardcams
+#InstallDuration = 1500
+#Flags = is-scribe

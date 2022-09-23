@@ -1090,5 +1090,6 @@ LIBFWUPDPLUGIN_1.8.4 {
     fu_security_attr_add_bios_target_value;
     fu_security_attr_get_type;
     fu_security_attr_new;
+    fu_udev_device_find_usb_device;
   local: *;
 } LIBFWUPDPLUGIN_1.8.3;

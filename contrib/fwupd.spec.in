@@ -514,6 +514,8 @@ done
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_vbe.so
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_logind.so
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_logitech_bulkcontroller.so
+%{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_logitech_webcams.so
+%{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_logitech_whiteboardcams.so
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_logitech_hidpp.so
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_uf2.so
 %{_libdir}/fwupd-plugins-%{fwupdplugin_version}/libfu_plugin_upower.so

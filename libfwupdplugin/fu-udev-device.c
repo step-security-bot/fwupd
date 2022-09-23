@@ -325,6 +325,21 @@ fu_udev_device_probe_serio(FuUdevDevice *self, GError **error)
 	return TRUE;
 }
 
+static guint16
+fu_udev_device_get_property_as_uint16(GUdevDevice *udev_device, const gchar *key)
+{
+	const gchar *tmp = g_udev_device_get_property(udev_device, key);
+	guint64 value = 0;
+	g_autofree gchar *str = NULL;
+
+	if (tmp == NULL)
+		return 0x0;
+	str = g_strdup_printf("0x%s", tmp);
+	if (!fu_strtoull(str, &value, 0x0, G_MAXUINT16, NULL))
+		return 0x0;
+	return (guint16)value;
+}
+
 static void
 fu_udev_device_set_vendor_from_udev_device(FuUdevDevice *self, GUdevDevice *udev_device)
 {
@@ -336,6 +351,14 @@ fu_udev_device_set_vendor_from_udev_device(FuUdevDevice *self, GUdevDevice *udev
 	    fu_udev_device_get_sysfs_attr_as_uint16(udev_device, "subsystem_vendor");
 	priv->subsystem_model =
 	    fu_udev_device_get_sysfs_attr_as_uint16(udev_device, "subsystem_device");
+
+	/* fallback to properties as udev might be using a subsystem-specific prober */
+	if (priv->vendor == 0x0)
+		priv->vendor = fu_udev_device_get_property_as_uint16(udev_device, "ID_VENDOR_ID");
+	if (priv->model == 0x0)
+		priv->model = fu_udev_device_get_property_as_uint16(udev_device, "ID_MODEL_ID");
+	if (priv->revision == 0x0)
+		priv->revision = fu_udev_device_get_property_as_uint16(udev_device, "ID_REVISION");
 }
 
 static void
@@ -1172,7 +1195,8 @@ fu_udev_device_set_physical_id(FuUdevDevice *self, const gchar *subsystems, GErr
 	} else if (g_strcmp0(subsystem, "usb") == 0 || g_strcmp0(subsystem, "mmc") == 0 ||
 		   g_strcmp0(subsystem, "i2c") == 0 || g_strcmp0(subsystem, "platform") == 0 ||
 		   g_strcmp0(subsystem, "scsi") == 0 || g_strcmp0(subsystem, "mtd") == 0 ||
-		   g_strcmp0(subsystem, "block") == 0 || g_strcmp0(subsystem, "gpio") == 0) {
+		   g_strcmp0(subsystem, "block") == 0 || g_strcmp0(subsystem, "gpio") ||
+		   g_strcmp0(subsystem, "video4linux") == 0) {
 		tmp = g_udev_device_get_property(udev_device, "DEVPATH");
 		if (tmp == NULL) {
 			g_set_error_literal(error,
@@ -2047,6 +2071,48 @@ fu_udev_device_get_children_with_subsystem(FuUdevDevice *self, const gchar *cons
 #endif
 
 	return g_steal_pointer(&out);
+}
+
+/**
+ * fu_udev_device_find_usb_device:
+ * @FuUdevDevice: a #FuUdevDevice
+ * @error: (nullable): optional return location for an error
+ *
+ * Gets the matching #GUsbDevice for the #GUdevDevice.
+ *
+ * Returns: (transfer full): a #GUsbDevice, or NULL if unset or invalid
+ *
+ * Since: 1.8.6
+ **/
+GUsbDevice *
+fu_udev_device_find_usb_device(FuUdevDevice *self, GError **error)
+{
+	g_debug("SRS LOGITECH_PLUGIN Inside %s", "fu_udev_device_find_usb_device");
+#if defined(HAVE_GUDEV) && defined(HAVE_GUSB)
+g_debug("SRS LOGITECH_PLUGIN Inside %s", "fu_udev_device_find_usb_device A");
+	FuUdevDevicePrivate *priv = GET_PRIVATE(self);
+	g_autoptr(GUsbContext) usb_ctx = NULL;
+	
+	g_return_val_if_fail(FU_IS_UDEV_DEVICE(self), NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+g_debug("SRS LOGITECH_PLUGIN Inside %s", "fu_udev_device_find_usb_device B");
+	guint8 bus = g_udev_device_get_sysfs_attr_as_int(priv->udev_device, "busnum");
+	guint8 address = g_udev_device_get_sysfs_attr_as_int(priv->udev_device, "devnum");
+
+	g_debug("SRS TEMP TODO fu_udev_device_find_usb_device  busnum: %u: devnum:%u ", bus, address);
+
+	usb_ctx = g_usb_context_new(error);
+	if (usb_ctx == NULL)
+		return NULL;
+	return g_usb_context_find_by_bus_address(usb_ctx, bus, address, error);
+#else
+	g_set_error_literal(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_NOT_SUPPORTED,
+			    "Not supported as <gudev.h> or <gusb.h> is unavailable");
+	return NULL;
+#endif
 }
 
 static void
