@@ -9,7 +9,6 @@ install_data(['logitech-whiteboardcams.quirk'],
 shared_module('fu_plugin_logitech_whiteboardcams',
   fu_hash,
   sources : [
-    'fu-logitech-whiteboardcams-common.c',
     'fu-logitech-whiteboardcams-device.c',
     'fu-plugin-logitech-whiteboardcams.c',
   ],

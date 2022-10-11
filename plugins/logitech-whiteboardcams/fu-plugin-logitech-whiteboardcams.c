@@ -13,7 +13,6 @@
 static void
 fu_plugin_logitech_whiteboardcams_init(FuPlugin *plugin)
 {
-	//fu_plugin_add_udev_subsystem(plugin, "v4l2");
 	fu_plugin_add_udev_subsystem(plugin, "video4linux");
 	fu_plugin_add_device_gtype(plugin, FU_TYPE_LOGITECH_WHITEBOARDCAMS_DEVICE);
 }
