@@ -1,0 +1,7 @@
+# TODO: revisit InstallDuration
+
+[USB\VID_046D&PID_08E2]
+Plugin = logitech_scribe
+InstallDuration = 120
+Flags = is-scribe
+RemoveDelay = 120000
