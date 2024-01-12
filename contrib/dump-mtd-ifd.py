@@ -7,6 +7,7 @@
 # pylint: disable=invalid-name,missing-docstring,too-few-public-methods,too-many-locals
 
 import sys
+import os
 import struct
 import io
 from typing import List, Optional
@@ -33,9 +34,13 @@ class IfdPartition:
         self.size: int = size
 
     def __str__(self) -> str:
+        try:
+            region_name: str = IfdPartition.REGION_NAMES[self.region]
+        except IndexError:
+            region_name = "unknown"
         return (
             "IfdPartition("
-            f"region={IfdPartition.REGION_NAMES[self.region]}, "
+            f"region=0x{self.region} ({region_name}), "
             f"offset=0x{self.offset:x}, "
             f"size=0x{self.size:x})"
         )
@@ -51,8 +56,7 @@ def _read_partitions(f: io.BufferedReader) -> bytearray:
         descriptor_map2,
     ) = struct.unpack_from("<16xIIII", blob_ifd, offset=0)
     if signature != 0x0FF0A55A:
-        print(f"Not IFD signature 0x0FF0A55A, got 0x{signature:X}")
-        sys.exit(1)
+        sys.exit(f"Not IFD signature 0x0FF0A55A, got 0x{signature:X}")
 
     # read out the descriptor maps
     print(f"descriptor_map0=0x{descriptor_map0:X}")
@@ -105,7 +109,12 @@ def _read_partitions(f: io.BufferedReader) -> bytearray:
         print("reading...", freg)
         try:
             f.seek(freg.offset)
-            blob[freg.offset : freg.offset + freg.size] = f.read(freg.size)
+            blob_part: bytes = f.read(freg.size)
+            blob_size: int = len(blob_part)
+            if blob_size != freg.size:
+                print(f"tried to read 0x{freg.size:x} and instead got 0x{blob_size:x}")
+            if blob_size:
+                blob[freg.offset : freg.offset + blob_size] = blob_part
         except OSError as e:
             print(f"failed to read: {e}")
     return blob
@@ -118,6 +127,7 @@ def _read_device_to_file(devname: str, filename: Optional[str]) -> None:
         for sysfs_fn in [
             "/sys/class/dmi/id/sys_vendor",
             "/sys/class/dmi/id/product_family",
+            "/sys/class/dmi/id/product_name",
             "/sys/class/dmi/id/product_sku",
         ]:
             try:
@@ -135,21 +145,22 @@ def _read_device_to_file(devname: str, filename: Optional[str]) -> None:
             filename = "bios.bin"
 
     # check this device name is what we expect
-    print(f"checking /dev/{devname}...")
-    with open(f"/sys/class/mtd/{devname}/name", "rb") as f_name:
-        name = f_name.read().decode().replace("\n", "")
+    print(f"checking {devname}...")
+    try:
+        with open(f"/sys/class/mtd/{os.path.basename(devname)}/name", "rb") as f_name:
+            name = f_name.read().decode().replace("\n", "")
+    except FileNotFoundError as e:
+        sys.exit(str(e))
     if name != "BIOS":
-        print(f"Not Intel Corporation PCH SPI Controller, got {name}")
-        sys.exit(1)
+        sys.exit(f"Not Intel Corporation PCH SPI Controller, got {name}")
 
     # read the IFD header, then each partition
     try:
-        with open(f"/dev/{devname}", "rb") as f_in:
-            print(f"reading from /dev/{devname}...")
+        with open(devname, "rb") as f_in:
+            print(f"reading from {devname}...")
             blob = _read_partitions(f_in)
     except PermissionError as e:
-        print(f"cannot read mtd device: {e}")
-        sys.exit(1)
+        sys.exit(f"cannot read mtd device: {e}")
     print(f"writing {filename}...")
     with open(filename, "wb") as f_out:
         f_out.write(blob)
@@ -158,7 +169,9 @@ def _read_device_to_file(devname: str, filename: Optional[str]) -> None:
 
 if __name__ == "__main__":
     # both have defaults
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        prog="dump-mtd-ifd", description="Dump local SPI contents using MTD"
+    )
     parser.add_argument(
         "--filename",
         action="store",
@@ -170,8 +183,8 @@ if __name__ == "__main__":
         "--devname",
         action="store",
         type=str,
-        help="Device name, e.g. mtd0",
-        default="mtd0",
+        help="Device name, e.g. /dev/mtd0",
+        default="/dev/mtd0",
     )
     args = parser.parse_args()
     _read_device_to_file(args.devname, args.filename)
