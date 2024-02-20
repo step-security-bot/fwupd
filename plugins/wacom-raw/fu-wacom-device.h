@@ -35,8 +35,8 @@ gboolean
 fu_wacom_device_get_feature(FuWacomDevice *self, guint8 *data, guint datasz, GError **error);
 gboolean
 fu_wacom_device_cmd(FuWacomDevice *self,
-		    FuWacomRawRequest *req,
-		    FuWacomRawResponse *rsp,
+		    const FuStructWacomRawRequest *st_req,
+		    guint8 *rsp_value,
 		    guint delay_ms,
 		    FuWacomDeviceCmdFlags flags,
 		    GError **error);
