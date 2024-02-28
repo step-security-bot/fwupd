@@ -56,7 +56,7 @@ struct FuStructWacomRawResponse {
     cmd: u8,
     echo: u8,
     resp: u8,
-    _unused: [u8; 131],
+    _unused: [u8; 132],
 }
 
 #[derive(Parse)]
