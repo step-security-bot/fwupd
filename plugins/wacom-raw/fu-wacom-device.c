@@ -270,6 +270,7 @@ static gboolean
 fu_wacom_device_cmd_response(FuWacomDevice *self,
 			     const FuStructWacomRawRequest *st_req,
 			     guint8 *rsp_value,
+			     FuWacomDeviceCmdFlags flags,
 			     GError **error)
 {
 	guint8 buf[FU_STRUCT_WACOM_RAW_RESPONSE_SIZE] = {FU_WACOM_RAW_BL_REPORT_ID_GET, 0x0};
@@ -284,8 +285,10 @@ fu_wacom_device_cmd_response(FuWacomDevice *self,
 		return FALSE;
 	if (!fu_wacom_common_check_reply(st_req, st_rsp, error))
 		return FALSE;
-	if (!fu_wacom_common_rc_set_error(st_rsp, error))
-		return FALSE;
+	if ((flags & FU_WACOM_DEVICE_CMD_FLAG_NO_ERROR_CHECK) == 0) {
+		if (!fu_wacom_common_rc_set_error(st_rsp, error))
+			return FALSE;
+	}
 
 	/* optional */
 	if (rsp_value != NULL)
@@ -298,6 +301,7 @@ fu_wacom_device_cmd_response(FuWacomDevice *self,
 typedef struct {
 	const FuStructWacomRawRequest *st_req;
 	guint8 *rsp_value;
+	FuWacomDeviceCmdFlags flags;
 } FuWacomRawResponseHelper;
 
 static gboolean
@@ -305,7 +309,11 @@ fu_wacom_device_cmd_response_cb(FuDevice *device, gpointer user_data, GError **e
 {
 	FuWacomDevice *self = FU_WACOM_DEVICE(device);
 	FuWacomRawResponseHelper *helper = (FuWacomRawResponseHelper *)user_data;
-	return fu_wacom_device_cmd_response(self, helper->st_req, helper->rsp_value, error);
+	return fu_wacom_device_cmd_response(self,
+					    helper->st_req,
+					    helper->rsp_value,
+					    helper->flags,
+					    error);
 }
 
 gboolean
@@ -321,18 +329,10 @@ fu_wacom_device_cmd(FuWacomDevice *self,
 		return FALSE;
 	}
 	fu_device_sleep(FU_DEVICE(self), delay_ms);
-
-	if (flags & FU_WACOM_DEVICE_CMD_FLAG_NO_ERROR_CHECK) {
-		guint8 buf[FU_STRUCT_WACOM_RAW_RESPONSE_SIZE] = {FU_WACOM_RAW_BL_REPORT_ID_GET,
-								 0x0};
-		if (!fu_wacom_device_get_feature(self, buf, sizeof(buf), error)) {
-			g_prefix_error(error, "failed to receive: ");
-			return FALSE;
-		}
-		return TRUE;
-	}
 	if (flags & FU_WACOM_DEVICE_CMD_FLAG_POLL_ON_WAITING) {
-		FuWacomRawResponseHelper helper = {.st_req = st_req, .rsp_value = rsp_value};
+		FuWacomRawResponseHelper helper = {.st_req = st_req,
+						   .rsp_value = rsp_value,
+						   .flags = flags};
 		return fu_device_retry_full(FU_DEVICE(self),
 					    fu_wacom_device_cmd_response_cb,
 					    FU_WACOM_RAW_CMD_RETRIES,
@@ -340,7 +340,7 @@ fu_wacom_device_cmd(FuWacomDevice *self,
 					    &helper,
 					    error);
 	}
-	return fu_wacom_device_cmd_response(self, st_req, rsp_value, error);
+	return fu_wacom_device_cmd_response(self, st_req, rsp_value, flags, error);
 }
 
 static gboolean
