@@ -181,7 +181,8 @@ fu_wacom_aes_device_erase_all(FuWacomAesDevice *self, FuProgress *progress, GErr
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_ALL_ERASE);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
+	fu_struct_wacom_raw_request_set_echo(st_req,
+					     fu_wacom_device_get_echo_next(FU_WACOM_DEVICE(self)));
 	if (!fu_wacom_device_cmd(FU_WACOM_DEVICE(self),
 				 st_req,
 				 NULL,

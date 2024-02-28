@@ -17,8 +17,6 @@
 
 #define FU_WACOM_RAW_BL_TYPE_FINALIZER 0x00
 
-#define FU_WACOM_RAW_ECHO_DEFAULT g_random_int_range(0xa0, 0xfe)
-
 gboolean
 fu_wacom_common_rc_set_error(const FuStructWacomRawResponse *st_rsp, GError **error);
 gboolean

@@ -29,6 +29,8 @@ typedef enum {
 
 #define FU_WACOM_RAW_DEVICE_FLAG_REQUIRES_WAIT_FOR_REPLUG (1 << 0)
 
+guint8
+fu_wacom_device_get_echo_next(FuWacomDevice *self);
 gboolean
 fu_wacom_device_set_feature(FuWacomDevice *self, const guint8 *data, guint datasz, GError **error);
 gboolean

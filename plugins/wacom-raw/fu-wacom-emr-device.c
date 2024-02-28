@@ -63,7 +63,8 @@ fu_wacom_emr_device_w9013_erase_data(FuWacomEmrDevice *self, GError **error)
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_ERASE_DATAMEM);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
+	fu_struct_wacom_raw_request_set_echo(st_req,
+					     fu_wacom_device_get_echo_next(FU_WACOM_DEVICE(self)));
 	buf[0] = 0x00; /* erased block */
 	buf[1] = fu_wacom_emr_device_calc_checksum(0x05 + 0x00 + 0x07 + 0x00,
 						   (const guint8 *)&st_req,
@@ -144,7 +145,8 @@ fu_wacom_emr_device_attach(FuDevice *device, FuProgress *progress, GError **erro
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_ATTACH);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
+	fu_struct_wacom_raw_request_set_echo(st_req,
+					     fu_wacom_device_get_echo_next(FU_WACOM_DEVICE(self)));
 	if (!fu_wacom_device_set_feature(self, st_req->data, st_req->len, error)) {
 		g_prefix_error(error, "failed to switch to runtime mode: ");
 		return FALSE;

@@ -16,6 +16,7 @@ typedef struct {
 	guint flash_block_size;
 	guint32 flash_base_addr;
 	guint32 flash_size;
+	guint8 echo_next;
 } FuWacomDevicePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(FuWacomDevice, fu_wacom_device, FU_TYPE_UDEV_DEVICE)
@@ -32,6 +33,20 @@ fu_wacom_device_to_string(FuDevice *device, guint idt, GString *str)
 	fu_string_append_kx(str, idt, "FlashBlockSize", priv->flash_block_size);
 	fu_string_append_kx(str, idt, "FlashBaseAddr", priv->flash_base_addr);
 	fu_string_append_kx(str, idt, "FlashSize", priv->flash_size);
+	fu_string_append_kx(str, idt, "EchoNext", priv->echo_next);
+}
+
+#define FU_WACOM_RAW_ECHO_MIN 0xA0
+#define FU_WACOM_RAW_ECHO_MAX 0xFE
+
+guint8
+fu_wacom_device_get_echo_next(FuWacomDevice *self)
+{
+	FuWacomDevicePrivate *priv = GET_PRIVATE(self);
+	priv->echo_next++;
+	if (priv->echo_next > FU_WACOM_RAW_ECHO_MAX)
+		priv->echo_next = FU_WACOM_RAW_ECHO_MIN;
+	return priv->echo_next;
 }
 
 gsize
@@ -49,8 +64,8 @@ fu_wacom_device_check_mpu(FuWacomDevice *self, GError **error)
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_GET_MPUTYPE);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
-	if (!fu_wacom_device_cmd(FU_WACOM_DEVICE(self),
+	fu_struct_wacom_raw_request_set_echo(st_req, fu_wacom_device_get_echo_next(self));
+	if (!fu_wacom_device_cmd(self,
 				 st_req,
 				 &rsp_value,
 				 0,
@@ -132,7 +147,7 @@ fu_wacom_device_check_mode(FuWacomDevice *self, GError **error)
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_CHECK_MODE);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
+	fu_struct_wacom_raw_request_set_echo(st_req, fu_wacom_device_get_echo_next(self));
 	if (!fu_wacom_device_cmd(self,
 				 st_req,
 				 &rsp_value,
@@ -162,7 +177,7 @@ fu_wacom_device_set_version_bootloader(FuWacomDevice *self, GError **error)
 
 	fu_struct_wacom_raw_request_set_report_id(st_req, FU_WACOM_RAW_BL_REPORT_ID_SET);
 	fu_struct_wacom_raw_request_set_cmd(st_req, FU_WACOM_RAW_BL_CMD_GET_BLVER);
-	fu_struct_wacom_raw_request_set_echo(st_req, FU_WACOM_RAW_ECHO_DEFAULT);
+	fu_struct_wacom_raw_request_set_echo(st_req, fu_wacom_device_get_echo_next(self));
 	if (!fu_wacom_device_cmd(self,
 				 st_req,
 				 &rsp_value,
@@ -383,6 +398,8 @@ fu_wacom_device_set_progress(FuDevice *self, FuProgress *progress)
 static void
 fu_wacom_device_init(FuWacomDevice *self)
 {
+	FuWacomDevicePrivate *priv = GET_PRIVATE(self);
+	priv->echo_next = FU_WACOM_RAW_ECHO_MIN;
 	fu_device_add_protocol(FU_DEVICE(self), "com.wacom.raw");
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_UPDATABLE);
 	fu_device_add_flag(FU_DEVICE(self), FWUPD_DEVICE_FLAG_INTERNAL);
